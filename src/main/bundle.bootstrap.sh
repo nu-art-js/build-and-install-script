@@ -7,7 +7,6 @@ source <(curl -fsSL https://github.com/nu-art/bash-tools/releases/latest/downloa
 import "./build.ts.sh"
 import "./manipulator.sh"
 import "./backup.sh"
-import "./flags.sh"
 
 for arg in "$@"; do
   if [[ $arg == "--fresh-start" || $arg == "-fs" ]]; then
