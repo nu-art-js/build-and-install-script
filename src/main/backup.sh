@@ -1,34 +1,38 @@
-#!/bin/bash
 
-BACKUP_DIR="$(pwd)/.trash/node_modules_backup"
-
-backup.modules() {
-  folder.delete "$BACKUP_DIR"
-  folder.create "$BACKUP_DIR"
+bai.backup() {
+  local target=".trash/node_modules_backup"
+  log.info "Backing up installed packages to $target"
+  rm -rf "$target"
+  mkdir -p "$target"
 
   for pkg in ts-common commando build-and-install; do
-    backup.pnpm_package "$pkg"
+    local from="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}/node_modules/@nu-art/${pkg}"
+    cp -R "$from" "$target/$pkg"
   done
 }
 
-backup.pnpm_package() {
-  local name="$1"
-  local from="$NODE_MODULES_DIR/.pnpm/@nu-art+${name}@${TS_VERSION}/node_modules/@nu-art/${name}"
-  local to="$BACKUP_DIR/${name}"
+bai.swap.stable() {
+  log.info "Linking stable packages..."
+  for pkg in ts-common commando build-and-install; do
+    local backup=".trash/node_modules_backup/$pkg"
+    local target="node_modules/@nu-art/$pkg"
 
-  log.info "Backing up $name -> $to"
-  cp -R "$from" "$to"
+    rm -rf "$target"
+    mkdir -p "$(dirname "$target")"
+    ln -s "$(pwd)/$backup" "$target"
+  done
+  echo "stable" > node_modules/.source
 }
 
-copy.backup() {
-  local from="$1"
-  local to="$2"
-  local name="$3"
+bai.swap.local() {
+  log.info "Linking local packages from _thunderstorm..."
+  for pkg in ts-common commando build-and-install; do
+    local src="_thunderstorm/$pkg/dist"
+    local dest="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}/node_modules/@nu-art/${pkg}"
 
-  log.info "Copying $name from $from to $to"
-  [[ ! -d "$to" ]] && mkdir -p "$to"
-  rm -rf "${to:?}"/* "${to:?}"/.[!.]* "${to:?}"/.??*
-  cp -R "$from/." "$to"
+    rm -rf "$dest"
+    mkdir -p "$dest"
+    cp -R "$src/." "$dest"
+  done
+  echo "local" > node_modules/.source
 }
-
-
