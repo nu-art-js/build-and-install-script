@@ -32,7 +32,7 @@ bai.initial.install() {
 }
 EOF
 
-  echo "packages:\n  - '.'" > pnpm-workspace.yaml
+  echo -e "packages:\n  - '.'" > pnpm-workspace.yaml
 
   pnpm install
   bai.backup
@@ -42,8 +42,8 @@ EOF
 
 bai.build.run() {
   if [[ -f "./build-and-install.ts" ]]; then
-    ts-node ./build-and-install.ts "$@"
+    ts-node ./build-and-install.ts -th -cox "$@"
   else
-    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" "$@"
+    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$@"
   fi
 }
