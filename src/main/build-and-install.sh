@@ -1,7 +1,7 @@
 #!/bin/bash
 
 system.setup() {
-  nvm.setup
+  node.ensure_nvm || node.install_nvm
 
   if ! command -v pnpm &> /dev/null; then
     log.info "Installing pnpm..."
@@ -32,7 +32,6 @@ bai.initial.install() {
 EOF
 
   echo -e "packages:\n  - '.'" > pnpm-workspace.yaml
-  additionalFlags+='-p -ip'
 
   pnpm install
   bai.backup
@@ -43,7 +42,7 @@ bai.build.run() {
   if [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
     ts-node "$REPO_ROOT/build-and-install.ts" -th -cox "$additionalFlags" "$@"
   else
-    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$additionalFlags" "$@"
+    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$@"
   fi
 }
 

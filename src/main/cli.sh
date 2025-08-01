@@ -23,6 +23,7 @@ bai.run() {
     -lbai) bai.swap.local ;;
     -lbaif) bai.backup; bai.swap.local ;;
     -sbai) bai.swap.stable ;;
+    -rlbai) bai.restore.local ;;
     *) [[ -f node_modules/.source && $(cat node_modules/.source) == "local" ]] && bai.swap.local ;;
   esac
 

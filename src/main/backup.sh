@@ -11,6 +11,21 @@ bai.backup() {
   done
 }
 
+bai.restore.local() {
+  log.info "Restoring previous local packages from backup-local..."
+
+  for pkg in ts-common commando build-and-install; do
+    local backup="$REPO_ROOT/.trash/node_modules_backup-local/$pkg"
+    local dest="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}/node_modules/@nu-art/${pkg}"
+
+    folder.delete "$dest"
+    folder.create "$(dirname "$dest")"
+    cp -R "$backup" "$dest"
+  done
+
+  echo "local" > node_modules/.source
+}
+
 bai.swap.stable() {
   log.info "Restoring stable packages..."
 
@@ -37,6 +52,12 @@ bai.swap.local() {
   for pkg in ts-common commando build-and-install; do
     local src="_thunderstorm/$pkg/dist"
     local dest="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}/node_modules/@nu-art/${pkg}"
+    local backup_local="$REPO_ROOT/.trash/node_modules_backup-local/$pkg"
+
+    # Backup current local content before overwriting
+    folder.delete "$backup_local"
+    folder.create "$(dirname "$backup_local")"
+    [[ -d "$dest" ]] && cp -R "$dest" "$backup_local"
 
     folder.delete "$dest"
     folder.create "$dest"
