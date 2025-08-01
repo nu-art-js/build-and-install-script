@@ -9,12 +9,11 @@ system.setup() {
   fi
 }
 
-
 bai.initial.install() {
   log.info "Performing fresh initial install of BAI..."
 
   rm -f package-lock.json pnpm-lock.yaml
-  rm -rf node_modules
+  folder.delete node_modules
 
   cat <<EOF >package.json
 {
@@ -33,17 +32,18 @@ bai.initial.install() {
 EOF
 
   echo -e "packages:\n  - '.'" > pnpm-workspace.yaml
+  additionalFlags+='-p -ip'
 
   pnpm install
   bai.backup
-
   echo "stable" > node_modules/.source
 }
 
 bai.build.run() {
   if [[ -f "./build-and-install.ts" ]]; then
-    ts-node ./build-and-install.ts -th -cox "$@"
+    ts-node ./build-and-install.ts -th -cox "$additionalFlags" "$@"
   else
-    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$@"
+    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$additionalFlags" "$@"
   fi
 }
+

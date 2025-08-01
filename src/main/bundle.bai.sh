@@ -9,3 +9,4 @@ import "./build-and-install.sh"
 import "./cli.sh"
 
 bai.run "$@"
+

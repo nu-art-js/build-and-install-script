@@ -3,7 +3,7 @@
 bai.run() {
   TS_VERSION=0.300.8
   freshStart=false
-
+  REPO_ROOT="$(folder.repo_root)"
 
   for arg in "$@"; do
     case "$arg" in
@@ -17,7 +17,7 @@ bai.run() {
   fi
 
   system.setup
-  bai.initial.install
+  [[ $freshStart == true ]] &&  bai.initial.install
 
   case "$swapMode" in
     -lbai) bai.swap.local ;;
