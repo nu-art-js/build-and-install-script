@@ -40,7 +40,7 @@ EOF
 }
 
 bai.build.run() {
-  if [[ -f "./build-and-install.ts" ]]; then
+  if [[ -f "$(npm root)/build-and-install.ts" ]]; then
     ts-node "$(npm root)/build-and-install.ts" -th -cox "$additionalFlags" "$@"
   else
     ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$additionalFlags" "$@"
