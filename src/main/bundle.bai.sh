@@ -8,5 +8,7 @@ import "./backup.sh"
 import "./build-and-install.sh"
 import "./cli.sh"
 
+
+log.debug "Running Bundle: $BUNDLE_NAME $BUNDLE_VERSION"
 bai.run "$@"
 
