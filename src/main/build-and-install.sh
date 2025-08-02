@@ -1,7 +1,7 @@
 #!/bin/bash
 
 system.setup() {
-  node.ensure_nvm || node.install_nvm
+  nvm.setup
 
   if ! command -v pnpm &> /dev/null; then
     log.info "Installing pnpm..."
