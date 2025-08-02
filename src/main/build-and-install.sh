@@ -34,15 +34,13 @@ EOF
   echo -e "packages:\n  - '.'" > pnpm-workspace.yaml
 
   pnpm install
-  bai.backup
-  echo "stable" > node_modules/.source
 }
 
 bai.build.run() {
   if [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
-    ts-node "$REPO_ROOT/build-and-install.ts" -th -cox "$additionalFlags" "$@"
+    ts-node "$REPO_ROOT/build-and-install.ts" -th -cox "$ADDITIONAL_FLAGS" "$@"
   else
-    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$@"
+    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$ADDITIONAL_FLAGS" "$@"
   fi
 }
 

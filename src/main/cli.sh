@@ -1,31 +1,70 @@
 #!/bin/bash
 
+bai.print_help() {
+  echo -e "\nThunderstorm BAI Script Options:\n"
+  echo "  --fresh-start, -fs        Run a clean install and immediately back it up"
+  echo "  --backup <label>, -b      Backup current node_modules under the given label (default if omitted)"
+  echo "  --restore <label>, -r     Restore node_modules from the given label (default if omitted)"
+  echo "  --local, -l               Inject dist folders from _thunderstorm packages"
+  echo "  --list                    List available backup labels"
+  echo "  --help-bai, -hb           Show this help message"
+  echo
+}
+
 bai.run() {
   TS_VERSION=0.300.8
-  freshStart=false
+  FRESH_START=false
   REPO_ROOT="$(folder.repo_root)"
 
-  for arg in "$@"; do
-    case "$arg" in
-      --fresh-start|-fs) freshStart=true ;;
-    esac
-    [[ "$arg" == -*bai* ]] && swapMode="$arg"
-  done
-
-  if [[ ! -e "./package.json" ]]; then
-    freshStart=true
-  fi
-
   system.setup
-  [[ $freshStart == true ]] &&  bai.initial.install
 
-  case "$swapMode" in
-    -lbai) bai.swap.local ;;
-    -lbaif) bai.backup; bai.swap.local ;;
-    -sbai) bai.swap.stable ;;
-    -rlbai) bai.restore.local ;;
-    *) [[ -f node_modules/.source && $(cat node_modules/.source) == "local" ]] && bai.swap.local ;;
-  esac
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --fresh-start|-fs)
+        ADDITIONAL_FLAGS+='-p -ip'
+        bai.initial.install
+        bai.backup "default"
+        break
+        ;;
+      --backup|-b)
+        if [[ -n "$2" && "$2" != --* ]]; then
+          BACKUP_LABEL="$2"
+          shift 2
+        else
+          BACKUP_LABEL="default"
+          shift
+        fi
+        bai.backup "$BACKUP_LABEL"
+        exit 0
+        ;;
+      --restore|-r)
+        if [[ -n "$2" && "$2" != --* ]]; then
+          RESTORE_LABEL="$2"
+          shift 2
+        else
+          RESTORE_LABEL="default"
+          shift
+        fi
+        bai.restore "$RESTORE_LABEL"
+        exit 0
+        ;;
+      --local|-l)
+        bai.swap.local
+        exit 0
+        ;;
+      --list)
+        bai.list.backups
+        exit 0
+        ;;
+      --help-bai|-hb)
+        bai.print_help
+        exit 0
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
 
   bai.build.run "$@"
 }
