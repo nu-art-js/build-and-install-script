@@ -9,6 +9,6 @@ import "./build-and-install.sh"
 import "./cli.sh"
 
 
-log.debug "Running Bundle: $BUNDLE_NAME v$BUNDLE_VERSION"
+#log.debug "Running Bundle: $BUNDLE_NAME v$BUNDLE_VERSION"
 bai.run "$@"
 
