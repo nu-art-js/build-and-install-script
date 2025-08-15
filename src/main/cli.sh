@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BAI_REMAINING_ARGS=()
+
 bai.print_help() {
   echo -e "\nThunderstorm BAI Script Options:\n"
   echo "  --fresh-start, -fs        Run a clean install and immediately back it up"
@@ -26,7 +28,7 @@ bai.run() {
         bai.backup "default"
         break
         ;;
-      --backup|-b)
+      --backup)
         if [[ -n "$2" && "$2" != --* ]]; then
           BACKUP_LABEL="$2"
           shift 2
@@ -37,7 +39,7 @@ bai.run() {
         bai.backup "$BACKUP_LABEL"
         exit 0
         ;;
-      --restore|-r)
+      --restore)
         if [[ -n "$2" && "$2" != --* ]]; then
           RESTORE_LABEL="$2"
           shift 2
@@ -48,7 +50,7 @@ bai.run() {
         bai.restore "$RESTORE_LABEL"
         exit 0
         ;;
-      --local|-l)
+      --local)
         bai.swap.local
         exit 0
         ;;
@@ -60,11 +62,12 @@ bai.run() {
         bai.print_help
         exit 0
         ;;
-      *)
+      *) # collect remaining
+        BAI_REMAINING_ARGS+=("$1")
         shift
         ;;
     esac
   done
 
-  bai.build.run "$@"
+  bai.build.run "${BAI_REMAINING_ARGS[@]}"
 }
