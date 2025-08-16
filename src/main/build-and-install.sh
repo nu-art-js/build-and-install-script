@@ -9,9 +9,10 @@ system.setup() {
   fi
 }
 
+FLAG__FRESH_START=
 bai.initial.install() {
   log.info "Performing fresh initial install of BAI..."
-
+  FLAG__FRESH_START=true
   rm -f package-lock.json pnpm-lock.yaml
   folder.delete node_modules
 
@@ -37,7 +38,7 @@ EOF
 }
 
 bai.build.run() {
-  if [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
+  if [[ -z FLAG__FRESH_START ]] && [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
     ts-node "$REPO_ROOT/build-and-install.ts" -th -cox "$ADDITIONAL_FLAGS" "$@"
   else
     ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$ADDITIONAL_FLAGS" "$@"
