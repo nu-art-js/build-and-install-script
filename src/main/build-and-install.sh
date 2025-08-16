@@ -38,7 +38,7 @@ EOF
 }
 
 bai.build.run() {
-  if [[ FLAG__FRESH_START != "true" ]] && [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
+  if [[ "$FLAG__FRESH_START" != "true" ]] && [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
     ts-node "$REPO_ROOT/build-and-install.ts" -th -cox "$ADDITIONAL_FLAGS" "$@"
   else
     ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" -th -cox "$ADDITIONAL_FLAGS" "$@"
