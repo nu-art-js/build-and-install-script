@@ -38,8 +38,6 @@ EOF
 }
 
 bai.build.run() {
-  echo "ts-node \"$(npm root)/@nu-art/build-and-install/build-and-install.js\" $ADDITIONAL_FLAGS $@"
-
   if [[ "$FLAG__FRESH_START" != "true" ]] && [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
     export NODE_OPTIONS='--import data:text/javascript,import%20%7B%20register%20%7D%20from%20%22node%3Amodule%22%3B%20import%20%7B%20pathToFileURL%20%7D%20from%20%22node%3Aurl%22%3B%20register%28%22ts-node%2Fesm%22%2C%20pathToFileURL%28%22.%2F%22%29%29%3B'
     node "$REPO_ROOT/build-and-install.ts" "$ADDITIONAL_FLAGS" "$@"

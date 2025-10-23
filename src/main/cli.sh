@@ -23,7 +23,7 @@ bai.run() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --fresh-start|-fs)
-        ADDITIONAL_FLAGS+='-p -i'
+        BAI_REMAINING_ARGS+=("-p")
         bai.initial.install
         bai.backup "default"
         break
