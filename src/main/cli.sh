@@ -24,6 +24,7 @@ bai.run() {
     case "$1" in
       --fresh-start|-fs)
         BAI_REMAINING_ARGS+=("-p")
+        rm -rf "$REPO_ROOT/node_modules"
         bai.initial.install
         bai.backup "default"
         break
