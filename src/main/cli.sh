@@ -14,7 +14,7 @@ bai.print_help() {
 }
 
 bai.run() {
-  TS_VERSION="0.400.1"
+  TS_VERSION="0.400.2"
   FRESH_START=false
   REPO_ROOT="$(folder.repo_root)"
 
@@ -23,7 +23,7 @@ bai.run() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --fresh-start|-fs)
-        ADDITIONAL_FLAGS+='-p -ip'
+        ADDITIONAL_FLAGS+='-p -i'
         bai.initial.install
         bai.backup "default"
         break
