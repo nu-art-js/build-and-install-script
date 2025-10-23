@@ -22,7 +22,7 @@ bai.run() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --fresh-start|-fs)
+      init)
         BAI_REMAINING_ARGS+=("-p")
         rm -rf "$REPO_ROOT/node_modules"
         bai.initial.install
