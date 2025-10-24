@@ -10,6 +10,6 @@ import "./cli.sh"
 
 
 #log.debug "Running Bundle: $BUNDLE_NAME v$BUNDLE_VERSION"
-log.info "running bai with params: $@"
+log.debug "BAI received params: $@"
 bai.run "$@"
 
