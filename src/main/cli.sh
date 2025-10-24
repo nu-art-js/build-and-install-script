@@ -24,10 +24,11 @@ bai.run() {
     case "$1" in
       init)
         BAI_REMAINING_ARGS+=("-p")
+        BAI_REMAINING_ARGS+=("-all")
         rm -rf "$REPO_ROOT/node_modules"
         bai.initial.install
         bai.backup "default"
-        break
+        shift
         ;;
       --backup)
         if [[ -n "$2" && "$2" != --* ]]; then
