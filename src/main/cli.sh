@@ -14,7 +14,7 @@ bai.print_help() {
 }
 
 bai.run() {
-  TS_VERSION="0.400.4"
+  TS_VERSION="0.400.5"
   FRESH_START=false
   REPO_ROOT="$(folder.repo_root)"
 
