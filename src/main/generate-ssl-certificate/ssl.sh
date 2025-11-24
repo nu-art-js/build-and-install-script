@@ -67,89 +67,93 @@ ssl.clean() {
   
   local project_ssl_dir="${REPO_ROOT}/.config/.ssl"
   
+  # Determine which keys to delete
+  local keys_to_delete=()
+  
   if [[ "$key_name" == "all" ]]; then
     log.info "Cleaning all SSL certificates from: $cert_dir"
     
-    # Remove all certificates from cert directory
+    # Find all .key files and extract their base names
     if [[ -d "$cert_dir" ]]; then
-      local count
-      count=$(find "$cert_dir" -type f \( -name "*.key" -o -name "*.crt" \) | wc -l | tr -d ' ')
-      if [[ "$count" -gt 0 ]]; then
-        find "$cert_dir" -type f \( -name "*.key" -o -name "*.crt" \) -delete
-        log.info "Removed $count certificate file(s) from $cert_dir"
-      else
-        log.info "No certificate files found in $cert_dir"
-      fi
-    else
-      log.info "Certificate directory does not exist: $cert_dir"
+      while IFS= read -r key_file; do
+        local basename
+        basename="$(basename "$key_file" .key)"
+        keys_to_delete+=("$basename")
+      done < <(find "$cert_dir" -maxdepth 1 -type f -name "*.key" 2>/dev/null)
     fi
     
-    # Remove all symlinks from project
-    if [[ -d "$project_ssl_dir" ]]; then
-      local link_count
-      link_count=$(find "$project_ssl_dir" -type l | wc -l | tr -d ' ')
-      if [[ "$link_count" -gt 0 ]]; then
-        find "$project_ssl_dir" -type l -delete
-        log.info "Removed $link_count symlink(s) from $project_ssl_dir"
-      else
-        log.info "No symlinks found in $project_ssl_dir"
-      fi
-      
-      # Remove directory if empty
-      if [[ -z "$(ls -A "$project_ssl_dir" 2>/dev/null)" ]]; then
-        rmdir "$project_ssl_dir" 2>/dev/null && log.info "Removed empty directory: $project_ssl_dir"
-      fi
-    else
-      log.info "Project SSL directory does not exist: $project_ssl_dir"
+    if [[ ${#keys_to_delete[@]} -eq 0 ]]; then
+      log.info "No certificate files found in $cert_dir"
     fi
   else
     log.info "Cleaning SSL certificates for: $key_name"
+    keys_to_delete=("$key_name")
+  fi
+  
+  # Iterate over keys and delete certificates and symlinks
+  local total_removed=0
+  local total_links_removed=0
+  
+  # Inner function to remove a file and its symlink (updates parent scope counters)
+  remove_file_and_symlink() {
+    local file_path="$1"
+    local symlink_path="$2"
     
-    local key_path="${cert_dir}/${key_name}.key"
-    local cert_path="${cert_dir}/${key_name}.crt"
-    local project_key_link="${project_ssl_dir}/${key_name}.key"
-    local project_cert_link="${project_ssl_dir}/${key_name}.crt"
-    
-    # Remove certificate files
-    local removed=0
-    if [[ -f "$key_path" ]]; then
-      rm -f "$key_path"
-      log.info "Removed: $key_path"
-      ((removed++))
+    # Remove certificate file
+    if [[ -f "$file_path" ]]; then
+      rm -f "$file_path" && log.info "Removed: $file_path" || log.warning "Failed to remove: $file_path"
+      total_removed=$((total_removed + 1))
     fi
     
-    if [[ -f "$cert_path" ]]; then
-      rm -f "$cert_path"
-      log.info "Removed: $cert_path"
-      ((removed++))
+    # Remove symlink (check for symlinks, including broken ones)
+    if [[ -L "$symlink_path" ]] || [[ -e "$symlink_path" ]]; then
+      if rm -f "$symlink_path" 2>/dev/null; then
+        log.info "Removed symlink: $symlink_path"
+        total_links_removed=$((total_links_removed + 1))
+      else
+        log.warning "Failed to remove symlink: $symlink_path"
+      fi
+    fi
+  }
+  
+  for key in "${keys_to_delete[@]}"; do
+    local key_path="${cert_dir}/${key}.key"
+    local cert_path="${cert_dir}/${key}.crt"
+    local project_key_link="${project_ssl_dir}/${key}.key"
+    local project_cert_link="${project_ssl_dir}/${key}.crt"
+    
+    # If certificate file exists in project workspace, untrust it before deletion
+    if [[ -e "$project_cert_link" ]] && [[ -f "$cert_path" ]]; then
+      log.info "Untrusting certificate before deletion: $cert_path"
+      ssl.untrust_cert "$cert_path" || log.warning "Failed to untrust certificate (continuing with deletion)"
     fi
     
-    if [[ "$removed" -eq 0 ]]; then
-      log.info "No certificate files found for: $key_name"
-    fi
+    # Remove key file and its symlink
+    remove_file_and_symlink "$key_path" "$project_key_link"
     
-    # Remove symlinks
-    local links_removed=0
-    if [[ -L "$project_key_link" ]]; then
-      rm -f "$project_key_link"
-      log.info "Removed symlink: $project_key_link"
-      ((links_removed++))
+    # Remove cert file and its symlink
+    remove_file_and_symlink "$cert_path" "$project_cert_link"
+  done
+  
+  # Summary logging
+  if [[ ${#keys_to_delete[@]} -gt 0 ]]; then
+    if [[ $total_removed -eq 0 ]]; then
+      log.info "No certificate files found for the specified key(s)"
     fi
-    
-    if [[ -L "$project_cert_link" ]]; then
-      rm -f "$project_cert_link"
-      log.info "Removed symlink: $project_cert_link"
-      ((links_removed++))
+    if [[ $total_links_removed -eq 0 ]]; then
+      log.info "No symlinks found for the specified key(s)"
     fi
-    
-    if [[ "$links_removed" -eq 0 ]]; then
-      log.info "No symlinks found for: $key_name"
-    fi
-    
-    # Remove directory if empty
-    if [[ -d "$project_ssl_dir" ]] && [[ -z "$(ls -A "$project_ssl_dir" 2>/dev/null)" ]]; then
-      rmdir "$project_ssl_dir" 2>/dev/null && log.info "Removed empty directory: $project_ssl_dir"
-    fi
+  fi
+  
+  # Remove directories if empty
+  if [[ -d "$project_ssl_dir" ]] && [[ -z "$(ls -A "$project_ssl_dir" 2>/dev/null)" ]]; then
+    rmdir "$project_ssl_dir" 2>/dev/null && log.info "Removed empty directory: $project_ssl_dir"
+  fi
+  
+  # Remove parent .config directory if it becomes empty (independent check)
+  local config_dir="${REPO_ROOT}/.config"
+  if [[ -d "$config_dir" ]] && [[ -z "$(ls -A "$config_dir" 2>/dev/null)" ]]; then
+    rmdir "$config_dir" 2>/dev/null && log.info "Removed empty directory: $config_dir"
   fi
   
   log.info "✅ SSL cleanup complete"
