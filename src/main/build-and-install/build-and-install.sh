@@ -19,6 +19,8 @@ bai.initial.install() {
   cat <<EOF >package.json
 {
   "name": "temp",
+  "private": true,
+  "type": "module",
   "version": "0.0.1",
   "devDependencies": {
     "tsx": "latest",
