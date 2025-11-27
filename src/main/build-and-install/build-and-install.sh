@@ -21,6 +21,7 @@ bai.initial.install() {
   "name": "temp",
   "version": "0.0.1",
   "devDependencies": {
+    "tsx": "latest",
     "ts-node": "latest",
     "typescript": "latest",
     "firebase-tools": "latest",
@@ -41,10 +42,10 @@ bai.build.run() {
   log.debug "Launching BAI with params: $*"
 
   if [[ "$FLAG__FRESH_START" != "true" ]] && [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then
-    export NODE_OPTIONS='--import data:text/javascript,import%20%7B%20register%20%7D%20from%20%22node%3Amodule%22%3B%20import%20%7B%20pathToFileURL%20%7D%20from%20%22node%3Aurl%22%3B%20register%28%22ts-node%2Fesm%22%2C%20pathToFileURL%28%22.%2F%22%29%29%3B'
-    node "$REPO_ROOT/build-and-install.ts" "$@"
+#    export NODE_OPTIONS='--import data:text/javascript,import%20%7B%20register%20%7D%20from%20%22node%3Amodule%22%3B%20import%20%7B%20pathToFileURL%20%7D%20from%20%22node%3Aurl%22%3B%20register%28%22ts-node%2Fesm%22%2C%20pathToFileURL%28%22.%2F%22%29%29%3B'
+    tsz "$REPO_ROOT/build-and-install.ts" "$@"
   else
-    ts-node "$(npm root)/@nu-art/build-and-install/build-and-install.js" "$@"
+    tsx "$(npm root)/@nu-art/build-and-install/build-and-install.js" "$@"
   fi
 }
 
