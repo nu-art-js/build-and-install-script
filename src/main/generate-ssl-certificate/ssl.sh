@@ -31,14 +31,32 @@ ssl.setup() {
   log.debug "Certificate directory: $cert_dir"
   log.debug "Project SSL directory: $project_ssl_dir"
   
+  # Ensure project SSL directory exists
+  folder.create "$project_ssl_dir"
+  
+  # Check if hard files (not symlinks) exist in project workspace and handle them
+  if [[ -f "$project_cert_link" ]] && [[ ! -L "$project_cert_link" ]]; then
+    log.info "Found hard certificate file in project workspace: $project_cert_link"
+    log.info "Untrusting and removing hard files before setting up symlinks"
+    
+    # Untrust the certificate before deleting
+    ssl.untrust_cert "$project_cert_link" || log.warning "Failed to untrust certificate (continuing with deletion)"
+    
+    # Delete hard files
+    rm -f "$project_cert_link" && log.info "Removed hard certificate file: $project_cert_link"
+    if [[ -f "$project_key_link" ]] && [[ ! -L "$project_key_link" ]]; then
+      rm -f "$project_key_link" && log.info "Removed hard key file: $project_key_link"
+    fi
+  fi
+  
   # Ensure certificate directory exists
   folder.create "$cert_dir"
   
   # Ensure certificates exist (lazy generation)
   ssl.ensure_cert "$key_path" "$cert_path" "$days"
   
-  # Ensure project SSL directory exists
-  folder.create "$project_ssl_dir"
+  # Trust the certificate
+  ssl.trust_cert "$cert_path" || log.warning "Failed to trust certificate automatically"
   
   # Create symlinks
   symlink.ensure "$key_path" "$project_key_link"
