@@ -1,5 +1,6 @@
 .cache
 .idea
+.config/.ssl
 dist
 _fixture.txt
 fixture*.txt

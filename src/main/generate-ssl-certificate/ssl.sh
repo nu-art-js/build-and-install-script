@@ -52,8 +52,26 @@ ssl.setup() {
   # Ensure certificate directory exists
   folder.create "$cert_dir"
   
-  # Ensure certificates exist (lazy generation)
-  ssl.ensure_cert "$key_path" "$cert_path" "$days"
+  # Check if configuration exists for this certificate name
+  if _ssl.find_config_file >/dev/null 2>&1; then
+    # Try to use configuration-based generation
+    if _ssl.read_config "$key_name" >/dev/null 2>&1; then
+      log.info "Using certificate configuration from .config/ssl-certs.json"
+      # Ensure certificates exist (lazy generation with config)
+      if [[ ! -f "$key_path" || ! -f "$cert_path" ]]; then
+        ssl.generate_cert_with_config "$key_name" "$key_path" "$cert_path"
+      else
+        log.debug "Certificate already exists: $cert_path"
+      fi
+    else
+      # Config file exists but no entry for this cert, fall back to simple generation
+      log.debug "No configuration found for '$key_name', using default settings"
+      ssl.ensure_cert "$key_path" "$cert_path" "$days"
+    fi
+  else
+    # No config file, use simple generation
+    ssl.ensure_cert "$key_path" "$cert_path" "$days"
+  fi
   
   # Trust the certificate (only if not already trusted)
   ssl.trust_cert "$cert_path" || log.warning "Failed to trust certificate automatically"

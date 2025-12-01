@@ -1,0 +1,14 @@
+# SSL Certificate Configuration
+# Format: INI-style sections with key=value pairs
+# Comments start with # and are ignored
+
+[localhost]
+cn=localhost
+san=*.localhost localhost beamz.localhost org1.localhost org2.localhost org3.localhost org4.localhost
+days=365
+
+[example-dev]
+cn=example.dev
+san=*.example.dev example.dev api.example.dev www.example.dev
+days=730
+
