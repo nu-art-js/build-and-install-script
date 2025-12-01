@@ -55,7 +55,7 @@ ssl.setup() {
   # Ensure certificates exist (lazy generation)
   ssl.ensure_cert "$key_path" "$cert_path" "$days"
   
-  # Trust the certificate
+  # Trust the certificate (only if not already trusted)
   ssl.trust_cert "$cert_path" || log.warning "Failed to trust certificate automatically"
   
   # Create symlinks
