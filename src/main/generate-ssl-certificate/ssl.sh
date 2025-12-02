@@ -53,10 +53,11 @@ ssl.setup() {
   folder.create "$cert_dir"
   
   # Check if configuration exists for this certificate name
-  if _ssl.find_config_file >/dev/null 2>&1; then
+  local config_file
+  if config_file="$(_ssl.find_config_file)" 2>/dev/null; then
     # Try to use configuration-based generation
     if _ssl.read_config "$key_name" >/dev/null 2>&1; then
-      log.info "Using certificate configuration from .config/ssl-certs.json"
+      log.info "Using certificate configuration from $(basename "$config_file")"
       # Ensure certificates exist (lazy generation with config)
       if [[ ! -f "$key_path" || ! -f "$cert_path" ]]; then
         ssl.generate_cert_with_config "$key_name" "$key_path" "$cert_path"
