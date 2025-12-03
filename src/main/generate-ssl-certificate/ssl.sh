@@ -53,16 +53,39 @@ ssl.setup() {
   folder.create "$cert_dir"
   
   # Check if configuration exists for this certificate name
-  local config_file
-  if config_file="$(_ssl.find_config_file)" 2>/dev/null; then
+  if _ssl.find_config_file >/dev/null 2>&1; then
     # Try to use configuration-based generation
     if _ssl.read_config "$key_name" >/dev/null 2>&1; then
-      log.info "Using certificate configuration from $(basename "$config_file")"
-      # Ensure certificates exist (lazy generation with config)
-      if [[ ! -f "$key_path" || ! -f "$cert_path" ]]; then
-        ssl.generate_cert_with_config "$key_name" "$key_path" "$cert_path"
+      log.info "Using certificate configuration from .config/ssl-certs.json"
+      # Check if certificate exists and is valid
+      if [[ -f "$key_path" && -f "$cert_path" ]]; then
+        # Check if certificate is expired or expiring soon (within 30 days)
+        if _ssl.is_cert_expired_or_expiring "$cert_path" 30; then
+          log.info "Certificate is expired or expiring soon: $cert_path"
+          log.info "Removing old certificate and key files..."
+          
+          # Untrust the old certificate before deleting
+          ssl.untrust_cert "$cert_path" || log.warning "Failed to untrust old certificate (continuing with removal)"
+          
+          # Remove old files - throw error if removal fails
+          if ! rm -f "$key_path"; then
+            error.throw "Failed to remove old key file: $key_path" 1
+          fi
+          log.debug "Removed old key file: $key_path"
+          
+          if ! rm -f "$cert_path"; then
+            error.throw "Failed to remove old certificate file: $cert_path" 1
+          fi
+          log.debug "Removed old certificate file: $cert_path"
+          
+          log.info "Generating new certificate with configuration..."
+          ssl.generate_cert_with_config "$key_name" "$key_path" "$cert_path" || error.throw "Failed to generate SSL certificate with config: $cert_path" 1
+        else
+          log.debug "Certificate already exists and is valid: $cert_path"
+        fi
       else
-        log.debug "Certificate already exists: $cert_path"
+        # Certificate files don't exist, generate new one
+        ssl.generate_cert_with_config "$key_name" "$key_path" "$cert_path" || error.throw "Failed to generate SSL certificate with config: $cert_path" 1
       fi
     else
       # Config file exists but no entry for this cert, fall back to simple generation
@@ -74,8 +97,8 @@ ssl.setup() {
     ssl.ensure_cert "$key_path" "$cert_path" "$days"
   fi
   
-  # Trust the certificate (only if not already trusted)
-  ssl.trust_cert "$cert_path" || log.warning "Failed to trust certificate automatically"
+  # Trust the certificate - this is critical, must succeed
+  ssl.trust_cert "$cert_path" || error.throw "Failed to trust certificate automatically: $cert_path" 1
   
   # Create symlinks
   symlink.ensure "$key_path" "$project_key_link"
@@ -136,9 +159,12 @@ ssl.clean() {
     local file_path="$1"
     local symlink_path="$2"
     
-    # Remove certificate file
+    # Remove certificate file - throw error if removal fails
     if [[ -f "$file_path" ]]; then
-      rm -f "$file_path" && log.info "Removed: $file_path" || log.warning "Failed to remove: $file_path"
+      if ! rm -f "$file_path"; then
+        error.throw "Failed to remove file: $file_path" 1
+      fi
+      log.info "Removed: $file_path"
       total_removed=$((total_removed + 1))
     fi
     

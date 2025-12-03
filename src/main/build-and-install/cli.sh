@@ -14,7 +14,7 @@ bai.print_help() {
 }
 
 bai.run() {
-  TS_VERSION="0.400.7"
+  TS_VERSION="0.400.8"
   FRESH_START=false
   REPO_ROOT="$(folder.repo_root)"
 
@@ -25,6 +25,7 @@ bai.run() {
       init)
         BAI_REMAINING_ARGS+=("-p")
         rm -rf "$REPO_ROOT/node_modules"
+        ssl.setup
         bai.initial.install
         bai.backup "default"
         shift
