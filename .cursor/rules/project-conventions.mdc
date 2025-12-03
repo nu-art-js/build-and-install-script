@@ -1,0 +1,177 @@
+---
+alwaysApply: true
+---
+
+# build-and-install-script Project Conventions
+
+## Project Context
+This is a **usage/application** project that consumes bash-tools to provide build and install functionality. Focus on application-specific functionality and leveraging bash-tools utilities rather than reimplementing.
+
+## File Structure
+
+### Source Organization
+- Source files: `src/main/` organized by feature/module
+- Test files: `src/test/` mirroring `src/main/` structure
+- Bundle entrypoints: `bundle.*.sh` files in `src/main/`
+- Distribution: Bundled files go to `dist/`
+- Version: Stored in root `VERSION` file (semantic versioning: `MAJOR.MINOR.PATCH`)
+
+### Module Structure
+Each module should be self-contained in its own directory:
+```
+src/main/
+  module-name/
+    bundle.module-name.sh  # Bundle entrypoint (if needed)
+    cli.sh                 # CLI interface (if needed)
+    module.sh              # Main module code
+```
+
+## Import/Source Patterns
+
+### Loading bash-tools
+In bundle files, load bash-tools from GitHub releases:
+```bash
+source <(curl -fsSL https://github.com/nu-art/bash-tools/releases/latest/download/bundle.loader.sh) -b lib.tools -f
+```
+
+### Import Pattern
+After loading bash-tools, use `import` for local modules:
+```bash
+import "./backup.sh"
+import "./build-and-install.sh"
+import "./cli.sh"
+```
+
+### Source Pattern
+For absolute paths or when import is not available:
+```bash
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../core/importer.sh"
+```
+
+### Import Order
+1. First: Load bash-tools bundle (if in bundle file)
+2. Then: Import local dependencies
+3. Last: Import the module's own dependencies
+
+### Avoid
+- Circular dependencies
+- Reimplementing functionality available in bash-tools
+- Hardcoded absolute paths
+- Direct source of bash-tools files (use bundle loader)
+
+## Testing Requirements
+
+### Test File Structure
+- Test files: `*.test.sh` in `src/test/`
+- Test files should mirror `src/main/` structure
+- Example: `src/main/generate-ssl-certificate/ssl.sh` → `src/test/generate-ssl-certificate/ssl.test.sh`
+
+### Test Function Naming
+- Test functions: Named `test_*` (e.g., `test_ssl_setup_success`)
+- Use descriptive names that explain what is being tested
+
+### Test Framework
+Use `expect` framework for assertions (provided by bash-tools):
+```bash
+expect "$result" to.equal "expected"
+expect "$result" to.contain "substring"
+expect "$result" to.be.empty
+expect "$result" to.have.length 5
+expect.run "command" to.fail.with 1 "error message"
+```
+
+### Lifecycle Hooks
+Use when needed:
+- `before()` - Setup before all tests
+- `before_each()` - Setup before each test
+- `after_each()` - Cleanup after each test
+- `after()` - Cleanup after all tests
+
+### Test Requirements
+- All public functions should have test coverage
+- Tests must pass before any release
+- Use bash-tools testing framework
+
+## Bundling Process
+
+### Bundle Entrypoints
+- Any `bundle.*.sh` file in `src/main/` is a bundle entrypoint
+- Bundle name is derived from filename: `bundle.bai.sh` → `bai`
+
+### Bundle Structure
+Bundles should:
+1. Load bash-tools via `source <(curl ...)`
+2. Import local dependencies via `import`
+3. Define the main entry function
+4. Call the entry function with `"$@"` to pass arguments
+
+**Example:**
+```bash
+#!/bin/bash
+
+source <(curl -fsSL https://github.com/nu-art/bash-tools/releases/latest/download/bundle.loader.sh) -b lib.tools -f
+
+import "./backup.sh"
+import "./build-and-install.sh"
+import "./cli.sh"
+
+bai.run "$@"
+```
+
+### Bundler Behavior
+- Automatically resolves `import` and `source` statements recursively
+- Generated bundles go to `dist/bundle.*.sh`
+- Bundles include version metadata and generation timestamp
+- Strips import/source statements and reorders for dependency correctness
+
+### Bundle Usage
+Bundles are distributed via GitHub releases and can be loaded:
+```bash
+source <(curl -fsSL https://github.com/nu-art/build-and-install-script/releases/latest/download/bundle.bai.sh)
+```
+
+## Release Process
+
+Follow this exact sequence:
+1. Run tests: `release.run_tests`
+2. Bundle artifacts: `release.bundle`
+3. Bump version: `release.bump_version <type>` (patch/minor/major)
+4. Commit version bump: `release.commit_version_bump`
+5. Tag version: `release.tag_current_version`
+6. Publish to GitHub: `release.publish_github`
+
+Execute via: `bash release.sh`
+
+## Version Management
+
+### Semantic Versioning
+- Format: `MAJOR.MINOR.PATCH` (e.g., `0.1.26`)
+- Bump patch for bug fixes
+- Bump minor for new features (backward compatible)
+- Bump major for breaking changes
+
+### Version File
+- Stored in `VERSION` file at project root
+- Single line with version number only
+- Updated automatically during release process
+
+## Project-Specific Guidelines
+
+### Usage/Application Focus
+- Depends on bash-tools (loaded from GitHub releases)
+- Focus on application-specific functionality
+- **Use bash-tools utilities rather than reimplementing**
+- Keep bundle size reasonable
+- Leverage existing bash-tools modules (logger, error, folder, etc.)
+
+### Module Design
+- One module per file/directory
+- Clear separation of concerns
+- Minimal dependencies between modules
+- Reuse bash-tools utilities whenever possible
+
+### bash-tools Integration
+- Always load bash-tools via bundle loader in bundle files
+- Use bash-tools utilities: `log.*`, `error.*`, `folder.*`, `string.*`, `array.*`, etc.
+- Don't duplicate functionality that exists in bash-tools
+- Keep dependencies on bash-tools version flexible (use latest)
