@@ -40,52 +40,12 @@ EOF
 
 ## @function: bai.ssl.setup()
 ##
-## @description: Setup SSL certificate for local development (creates, adds to keychain, and trusts)
+## @description: Setup SSL certificate for local development (wrapper around ssl.setup)
 ##
 ## @return: void
 bai.ssl.setup() {
-  local CERT_NAME="${1:-localhost}"
-  local DAYS="${2:-365}"
-  
-  log.info "Setting up SSL certificate for local development..."
-  
-  # Determine certificate paths
-  local CERT_DIR="${SSL_CERT_DIR:-${REPO_ROOT}/.temp}"
-  local CERT_PATH="${CERT_DIR}/${CERT_NAME}.crt"
-  local KEY_PATH="${CERT_DIR}/${CERT_NAME}.key"
-  
-  # Ensure certificate directory exists
-  folder.create "$CERT_DIR"
-  
-  # Step 1: Ensure certificate exists
-  log.info "Step 1: Ensuring certificate exists..."
-  if ! ssl.has_cert "$CERT_PATH"; then
-    log.info "Certificate not found, creating..."
-    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
-  else
-    log.debug "Certificate already exists: $CERT_PATH"
-    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
-  fi
-  
-  # Step 2: Add to keychain if not present
-  log.info "Step 2: Checking if certificate is in keychain..."
-  if ssl.is_cert_in_keychain "$CERT_PATH"; then
-    log.debug "Certificate is already in keychain"
-  else
-    log.info "Certificate not in keychain, adding..."
-    ssl.add_cert_to_keychain "$CERT_PATH"
-  fi
-  
-  # Step 3: Trust certificate if not trusted
-  log.info "Step 3: Ensuring certificate is trusted..."
-  if ssl.is_cert_trusted "$CERT_PATH"; then
-    log.debug "Certificate is already trusted"
-  else
-    log.info "Certificate not trusted, trusting..."
-    ssl.trust_cert "$CERT_PATH"
-  fi
-  
-  log.info "✅ SSL certificate setup complete"
+  # Delegate to the shared ssl.setup function from bash-tools
+  ssl.setup "$@"
 }
 
 bai.build.run() {
