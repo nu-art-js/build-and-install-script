@@ -1,0 +1,64 @@
+## @function: ssl.setup(cert_name?, days?)
+##
+## @description: Complete SSL certificate setup for local development. Creates certificate if missing, adds to keychain if not present, and ensures it's trusted. Uses encapsulated SSL APIs.
+##
+## @param: $1 - Optional certificate name (default: localhost)
+## @param: $2 - Optional number of days validity (default: 365)
+##
+## @return: null
+ssl.setup() {
+  local CERT_NAME="${1:-localhost}"
+  local DAYS="${2:-365}"
+  
+  # Get repo root for certificate directory
+  local REPO_ROOT
+  REPO_ROOT="$(folder.repo_root)"
+  
+  log.info "Setting up SSL certificate for local development..."
+  
+  # Determine certificate paths
+  local CERT_DIR="${SSL_CERT_DIR:-${REPO_ROOT}/.temp}"
+  local CERT_PATH="${CERT_DIR}/${CERT_NAME}.crt"
+  local KEY_PATH="${CERT_DIR}/${CERT_NAME}.key"
+  
+  log.debug "Certificate name: $CERT_NAME"
+  log.debug "Validity: $DAYS days"
+  log.debug "Certificate directory: $CERT_DIR"
+  echo ""
+  
+  # Ensure certificate directory exists
+  folder.create "$CERT_DIR"
+  
+  # Step 1: Ensure certificate exists
+  log.info "Step 1: Ensuring certificate exists..."
+  if ! ssl.has_cert "$CERT_PATH"; then
+    log.info "Certificate not found, creating..."
+    # Generate certificate with SAN entries for webpack and express compatibility
+    # Includes localhost (DNS) and 127.0.0.1 (IP) in Subject Alternative Name
+    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
+  else
+    log.debug "Certificate already exists: $CERT_PATH"
+    # Still call ensure_cert to check expiration and regenerate if needed
+    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
+  fi
+  
+  # Step 2: Add to keychain if not present
+  log.info "Step 2: Checking if certificate is in keychain..."
+  if ssl.is_cert_in_keychain "$CERT_PATH"; then
+    log.debug "Certificate is already in keychain"
+  else
+    log.info "Certificate not in keychain, adding..."
+    ssl.add_cert_to_keychain "$CERT_PATH"
+  fi
+  
+  # Step 3: Trust certificate if not trusted
+  log.info "Step 3: Ensuring certificate is trusted..."
+  if ssl.is_cert_trusted "$CERT_PATH"; then
+    log.debug "Certificate is already trusted"
+  else
+    log.info "Certificate not trusted, trusting..."
+    ssl.trust_cert "$CERT_PATH"
+  fi
+  
+  log.info "✅ SSL certificate setup complete"
+}
