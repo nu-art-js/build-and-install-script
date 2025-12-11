@@ -4,6 +4,8 @@ BAI_REMAINING_ARGS=()
 
 bai.print_help() {
   echo -e "\nThunderstorm BAI Script Options:\n"
+  echo "  init                      Full initialization (removes node_modules, sets up SSL, installs deps)"
+  echo "  ssl [name] [days]         Setup SSL certificate only (fast, for testing)"
   echo "  --backup <label>, -b      Backup current node_modules under the given label (default if omitted)"
   echo "  --restore <label>, -r     Restore node_modules from the given label (default if omitted)"
   echo "  --local, -l               Inject dist folders from _thunderstorm packages"
@@ -39,6 +41,15 @@ bai.run() {
         bai.initial.install
         bai.backup "default"
         shift
+        ;;
+      ssl)
+        # Setup SSL certificate only (fast, for testing)
+        # Accepts optional cert name and days as arguments
+        shift
+        local cert_name="${1:-localhost}"
+        local days="${2:-365}"
+        bai.ssl.setup "$cert_name" "$days"
+        exit 0
         ;;
       --backup)
         if [[ -n "$2" && "$2" != --* ]]; then
