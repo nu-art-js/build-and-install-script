@@ -1,14 +1,16 @@
-## @function: ssl.setup(cert_name?, days?)
+## @function: ssl.setup(cert_name?, days?, keychain_type?)
 ##
 ## @description: Complete SSL certificate setup for local development. Creates certificate if missing, adds to keychain if not present, and ensures it's trusted. Uses encapsulated SSL APIs.
 ##
 ## @param: $1 - Optional certificate name (default: localhost)
 ## @param: $2 - Optional number of days validity (default: 365)
+## @param: $3 - Optional keychain type: "login" (default, no sudo) or "system" (requires sudo)
 ##
 ## @return: null
 ssl.setup() {
   local CERT_NAME="${1:-localhost}"
   local DAYS="${2:-365}"
+  local KEYCHAIN_TYPE="${3:-login}"
   
   # Get repo root for certificate directory
   local REPO_ROOT
@@ -23,6 +25,7 @@ ssl.setup() {
   
   log.debug "Certificate name: $CERT_NAME"
   log.debug "Validity: $DAYS days"
+  log.debug "Keychain type: $KEYCHAIN_TYPE"
   log.debug "Certificate directory: $CERT_DIR"
   echo ""
   
@@ -44,20 +47,20 @@ ssl.setup() {
   
   # Step 2: Add to keychain if not present
   log.info "Step 2: Checking if certificate is in keychain..."
-  if ssl.is_cert_in_keychain "$CERT_PATH"; then
+  if ssl.is_cert_in_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"; then
     log.debug "Certificate is already in keychain"
   else
     log.info "Certificate not in keychain, adding..."
-    ssl.add_cert_to_keychain "$CERT_PATH"
+    ssl.add_cert_to_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"
   fi
   
   # Step 3: Trust certificate if not trusted
   log.info "Step 3: Ensuring certificate is trusted..."
-  if ssl.is_cert_trusted "$CERT_PATH"; then
+  if ssl.is_cert_trusted "$CERT_PATH" "$KEYCHAIN_TYPE"; then
     log.debug "Certificate is already trusted"
   else
     log.info "Certificate not trusted, trusting..."
-    ssl.trust_cert "$CERT_PATH"
+    ssl.trust_cert "$CERT_PATH" "$KEYCHAIN_TYPE"
   fi
   
   log.info "✅ SSL certificate setup complete"

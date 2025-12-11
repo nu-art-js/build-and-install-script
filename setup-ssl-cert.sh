@@ -8,7 +8,7 @@ CERT_NAME="${1:-localhost}"
 DAYS="${2:-365}"
 
 # Load bash-tools
-source <(curl -fsSL https://github.com/nu-art/bash-tools/releases/latest/download/bundle.loader.sh) -b lib.tools -f
+source <(curl -fsSL https://github.com/nu-art/bash-tools/releases/latest/download/bundle.loader.sh) -b lib.tools
 
 # Determine repo root
 REPO_ROOT="$(folder.repo_root)"
