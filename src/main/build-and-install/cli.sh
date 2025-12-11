@@ -4,7 +4,6 @@ BAI_REMAINING_ARGS=()
 
 bai.print_help() {
   echo -e "\nThunderstorm BAI Script Options:\n"
-  echo "  --fresh-start, -fs        Run a clean install and immediately back it up"
   echo "  --backup <label>, -b      Backup current node_modules under the given label (default if omitted)"
   echo "  --restore <label>, -r     Restore node_modules from the given label (default if omitted)"
   echo "  --local, -l               Inject dist folders from _thunderstorm packages"
@@ -14,18 +13,29 @@ bai.print_help() {
 }
 
 bai.run() {
-  TS_VERSION="0.400.8"
-  FRESH_START=false
   REPO_ROOT="$(folder.repo_root)"
 
   system.setup
+
+  # Resolve TS_VERSION: check environment variable first, then query npm registry
+  if [[ -z "$TS_VERSION" ]]; then
+    TS_VERSION="$(npm show @nu-art/ts-common version 2>/dev/null)"
+    if [[ -z "$TS_VERSION" ]]; then
+      TS_VERSION="0.400.8"
+      log.warning "Failed to query npm registry for @nu-art/ts-common version, using fallback: $TS_VERSION"
+    else
+      log.debug "Resolved TS_VERSION from npm registry: $TS_VERSION"
+    fi
+  else
+    log.debug "Using TS_VERSION from environment: $TS_VERSION"
+  fi
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       init)
         BAI_REMAINING_ARGS+=("-p")
         rm -rf "$REPO_ROOT/node_modules"
-        ssl.setup
+        bai.ssl.setup
         bai.initial.install
         bai.backup "default"
         shift
