@@ -6,6 +6,7 @@ source <(curl -fsSL https://github.com/nu-art/bash-tools/releases/latest/downloa
 
 # SSL functions are provided by lib.tools bundle (ssl.setup, ssl.generate_cert, etc.)
 import "./cli.sh"
+import "./ssl.sh"
 
 #log.debug "Running Bundle: $BUNDLE_NAME v$BUNDLE_VERSION"
 log.debug "SSL bundle received params: $*"
