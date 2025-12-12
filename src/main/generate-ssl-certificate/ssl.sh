@@ -28,7 +28,12 @@ ssl.setup() {
   
   # Ensure certificate directory exists
   folder.create "$CERT_DIR"
-  
+
+  # Debounce logic: skip setup if within one week, unless forced
+  # Store sync file path for later timestamp update on success
+  local SYNC_FILE="${CERT_DIR}/${CERT_NAME}.sync"
+  local FORCE_FLAG="${4:-false}"
+  ssl.debounce_setup "$SYNC_FILE" "$FORCE_FLAG" || return 0
   # Step 1: Ensure certificate exists
   log.info "Step 1: Ensuring certificate exists..."
   if ! ssl.has_cert "$CERT_PATH"; then
@@ -42,6 +47,17 @@ ssl.setup() {
     ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
   fi
   
+  # Check if certificate is expiring soon (within 14 days)
+  if ssl.has_cert "$CERT_PATH"; then
+    if ssl.is_cert_expired_or_expiring "$CERT_PATH" "14"; then
+      log.info "Certificate is expired or will expire within 14 days. Removing and regenerating..."
+      rm -f "$CERT_PATH" "$KEY_PATH"
+      # Call ssl.setup again with the same arguments and return the exit code
+      ssl.setup "$CERT_NAME" "$DAYS" "$KEYCHAIN_TYPE"
+      exit $?
+    fi
+  fi
+
   # Step 2: Add to keychain if not present
   log.info "Step 2: Checking if certificate is in keychain..."
   if ssl.is_cert_in_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"; then
@@ -81,4 +97,52 @@ ssl.setup() {
   log.info "✅ SSL certificate setup complete"
   log.info "   Source of truth: $CERT_DIR"
   log.info "   Project symlinks: $PROJECT_SSL_DIR"
+  
+  # Update debounce timestamp only after successful completion
+  date +%s > "$SYNC_FILE"
+}
+
+
+## @function: ssl.debounce_setup(sync_file, force?)
+##
+## @description: Checks if SSL certificate setup should be debounced (run at most once every 7 days, unless forced). Does not set the timestamp - that is done only after successful completion.
+##
+## @param: $1 - Path to the sync timestamp file (e.g., "${CERT_NAME}.sync")
+## @param: $2 - Optional force flag ("true" to skip debounce; default: false)
+##
+## @return: 0 if setup should proceed, 1 if within debounce window and not forced
+##
+## @example: ssl.debounce_setup "$SYNC_TIMESTAMP_FILE" "$FORCE" || return 0
+##
+## @note: Only checks the timestamp; does not update it. Timestamp is set after successful completion in ssl.setup.
+##
+## @dependencies: log
+ssl.debounce_setup() {
+  local sync_file="$1"
+  local force="${2:-false}"
+
+  if [[ -z "$sync_file" ]]; then
+    error.throw "Missing argument: sync_file" 1
+  fi
+
+  # If forced, always proceed (don't check debounce)
+  if [[ "$force" == "true" ]]; then
+    return 0
+  fi
+
+  local now_ts last_ts seven_days delta
+  now_ts="$(date +%s)"
+  seven_days=$((7 * 24 * 60 * 60))
+
+  if [[ -f "$sync_file" ]]; then
+    last_ts="$(cat "$sync_file" 2>/dev/null || echo 0)"
+    delta=$((now_ts - last_ts))
+    if [[ "$delta" -lt "$seven_days" ]]; then
+      log.info "SSL certificate setup is debounced; last sync less than 7 days ago (use FORCE to override)."
+      return 1
+    fi
+  fi
+
+  # Proceed with setup (timestamp will be set after successful completion)
+  return 0
 }
