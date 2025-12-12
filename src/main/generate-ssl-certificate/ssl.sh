@@ -12,14 +12,11 @@ ssl.setup() {
   local DAYS="${2:-365}"
   local KEYCHAIN_TYPE="${3:-login}"
   
-  # Get repo root for certificate directory
-  local REPO_ROOT
-  REPO_ROOT="$(folder.repo_root)"
-  
   log.info "Setting up SSL certificate for local development..."
   
   # Determine certificate paths
-  local CERT_DIR="${SSL_CERT_DIR:-${REPO_ROOT}/.temp}"
+  # Source of truth: ~/.local-dev-ssl/ (see .project/conventions/ssl-certificate-storage.txt)
+  local CERT_DIR="${SSL_CERT_DIR:-${HOME}/.local-dev-ssl}"
   local CERT_PATH="${CERT_DIR}/${CERT_NAME}.crt"
   local KEY_PATH="${CERT_DIR}/${CERT_NAME}.key"
   

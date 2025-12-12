@@ -1,0 +1,40 @@
+# SSL Certificate Storage Convention
+
+## Overview
+This document defines the standard structure and location for SSL certificates used in local development.
+
+## Source of Truth
+**Location:** `~/.local-dev-ssl/`
+
+This is the canonical location for all local development SSL certificates. All certificates should be stored here as the single source of truth.
+
+## Symlink Structure
+**Symlink Target:** `<repo-root>/.config/.ssl/`
+
+Certificates from `~/.local-dev-ssl/` are symlinked into the `.config/.ssl/` folder of each repository root. This allows projects to reference certificates via a consistent path relative to the repo.
+
+### Example Structure:
+```
+~/.local-dev-ssl/
+  ├── localhost.crt
+  ├── localhost.key
+  └── ...
+
+<repo-root>/.config/.ssl/  (symlinks)
+  ├── localhost.crt -> ~/.local-dev-ssl/localhost.crt
+  ├── localhost.key -> ~/.local-dev-ssl/localhost.key
+  └── ...
+```
+
+## Testing/Development Only
+The following are **ONLY for testing purposes** and should not be used in production code:
+
+- `setup-ssl-cert.sh` - Testing script only
+- `.temp/` folder in repo root - Testing directory only
+
+Production code should always use `~/.local-dev-ssl/` as the source of truth.
+
+## Implementation Notes
+- Certificates are managed via the `ssl.*` functions in `bash-tools`
+- The symlink structure is maintained automatically by the SSL setup functions
+- All certificate operations (generate, add to keychain, trust) work with the source of truth location
