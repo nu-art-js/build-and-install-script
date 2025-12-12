@@ -48,8 +48,8 @@ bai.run() {
         shift
         local cert_name="${1:-localhost}"
         local days="${2:-365}"
-        bai.ssl.setup "$cert_name" "$days"
-        exit 0
+        bai.ssl.setup "$cert_name" "$days" "system" "true"
+        exit $? # Exit with the return code of ssl.setup
         ;;
       --backup)
         if [[ -n "$2" && "$2" != --* ]]; then
