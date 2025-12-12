@@ -10,7 +10,7 @@
 ssl.setup() {
   local CERT_NAME="${1:-localhost}"
   local DAYS="${2:-365}"
-  local KEYCHAIN_TYPE="${3:-login}"
+  local KEYCHAIN_TYPE="${3:-system}"
   
   log.info "Setting up SSL certificate for local development..."
   
