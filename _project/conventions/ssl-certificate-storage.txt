@@ -36,5 +36,11 @@ Production code should always use `~/.local-dev-ssl/` as the source of truth.
 
 ## Implementation Notes
 - Certificates are managed via the `ssl.*` functions in `bash-tools`
-- The symlink structure is maintained automatically by the SSL setup functions
+- The `ssl.setup()` function automatically:
+  1. Creates certificates in `~/.local-dev-ssl/` (source of truth)
+  2. Adds certificates to keychain
+  3. Trusts certificates
+  4. Creates symlinks in `<repo-root>/.config/.ssl/` pointing to source of truth
 - All certificate operations (generate, add to keychain, trust) work with the source of truth location
+- The symlink structure is maintained automatically by `ssl.setup()` using `symlink.ensure()` from bash-tools
+- Projects should reference certificates via `.config/.ssl/` for consistent paths relative to repo root

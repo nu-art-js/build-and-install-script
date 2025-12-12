@@ -60,5 +60,25 @@ ssl.setup() {
     ssl.trust_cert "$CERT_PATH" "$KEYCHAIN_TYPE"
   fi
   
+  # Step 4: Create symlinks in project .config/.ssl/ directory
+  log.info "Step 4: Creating symlinks in project directory..."
+  local REPO_ROOT
+  REPO_ROOT="$(folder.repo_root)"
+  local PROJECT_SSL_DIR="${REPO_ROOT}/.config/.ssl"
+  
+  # Create .config/.ssl directory if it doesn't exist
+  folder.create "$PROJECT_SSL_DIR"
+  
+  # Create symlinks for certificate and key
+  local PROJECT_CERT_PATH="${PROJECT_SSL_DIR}/${CERT_NAME}.crt"
+  local PROJECT_KEY_PATH="${PROJECT_SSL_DIR}/${CERT_NAME}.key"
+  
+  # Use symlink.ensure to create/update symlinks (from bash-tools)
+  # This ensures symlinks point to the correct source of truth
+  symlink.ensure "$CERT_PATH" "$PROJECT_CERT_PATH"
+  symlink.ensure "$KEY_PATH" "$PROJECT_KEY_PATH"
+  
   log.info "✅ SSL certificate setup complete"
+  log.info "   Source of truth: $CERT_DIR"
+  log.info "   Project symlinks: $PROJECT_SSL_DIR"
 }
