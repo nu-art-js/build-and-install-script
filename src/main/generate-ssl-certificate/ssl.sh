@@ -8,6 +8,13 @@
 ##
 ## @return: null
 ssl.setup() {
+  # Skip SSL setup when running as Jenkins user (CI/CD environment)
+  local current_user="${USER:-$(whoami)}"
+  if [[ "$current_user" == "jenkins" ]]; then
+    log.info "Skipping SSL certificate setup (running as Jenkins user in CI/CD environment)"
+    return 0
+  fi
+  
   local CERT_NAME="${1:-localhost}"
   local DAYS="${2:-365}"
   local KEYCHAIN_TYPE="${3:-system}"
