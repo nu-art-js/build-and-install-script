@@ -14,7 +14,7 @@ bai.print_help() {
   echo
 }
 
-TS_DESIRED_VERSION=~0.400.0
+TS_DESIRED_VERSION="~0.400.0"
 
 bai.run() {
   REPO_ROOT="$(folder.repo_root)"
@@ -23,7 +23,8 @@ bai.run() {
 
   # Resolve TS_VERSION: check environment variable first, then query npm registry
   if [[ -z "$TS_VERSION" ]]; then
-    TS_VERSION="$(npm show @nu-art/ts-common@${TS_DESIRED_VERSION} version 2>/dev/null)"
+    # npm view with range returns all matching versions as JSON array, extract the last one (latest)
+    TS_VERSION="$(npm view @nu-art/ts-common@${TS_DESIRED_VERSION} version --json 2>/dev/null | grep -o '"[0-9.]*"' | tail -1 | tr -d '"')"
     log.debug "Resolved TS_VERSION from npm registry: $TS_VERSION"
   else
     log.debug "Using TS_VERSION from environment: $TS_VERSION"
