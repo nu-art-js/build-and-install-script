@@ -6,6 +6,7 @@ bai.print_help() {
   echo -e "\nThunderstorm BAI Script Options:\n"
   echo "  init                      Full initialization (removes node_modules, sets up SSL, installs deps)"
   echo "  ssl [name] [days]         Setup SSL certificate only (fast, for testing)"
+  echo "  --ts-version=<pattern>, -tv=<pattern>  Desired version pattern (e.g., ~0.400.0, ^0.400.0, or exact version)"
   echo "  --backup <label>, -b      Backup current node_modules under the given label (default if omitted)"
   echo "  --restore <label>, -r     Restore node_modules from the given label (default if omitted)"
   echo "  --local, -l               Inject dist folders from _thunderstorm packages"
@@ -20,6 +21,16 @@ bai.run() {
   REPO_ROOT="$(folder.repo_root)"
 
   system.setup
+
+  # Process configuration flags (extract --ts-version before TS_VERSION resolution)
+  for arg in "$@"; do
+    case "$arg" in
+      --ts-version=*|-tsv=*)
+        TS_DESIRED_VERSION="${arg#*=}"
+        log.debug "TS_DESIRED_VERSION set from CLI flag: $TS_DESIRED_VERSION"
+        ;;
+    esac
+  done
 
   # Resolve TS_VERSION: check environment variable first, then query npm registry
   if [[ -z "$TS_VERSION" ]]; then
