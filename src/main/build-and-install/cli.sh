@@ -36,6 +36,9 @@ bai.run() {
   if [[ -z "$TS_VERSION" ]]; then
     # npm view with range returns all matching versions as JSON array, extract the last one (latest)
     TS_VERSION="$(npm view @nu-art/ts-common@${TS_DESIRED_VERSION} version --json 2>/dev/null | grep -o '"[0-9.]*"' | tail -1 | tr -d '"')"
+    if [[ -z "$TS_VERSION" ]]; then
+      error.throw "No matching version found for pattern '$TS_DESIRED_VERSION' in package @nu-art/ts-common. Please check the version pattern and try again." 1
+    fi
     log.debug "Resolved TS_VERSION from npm registry: $TS_VERSION"
   else
     log.debug "Using TS_VERSION from environment: $TS_VERSION"
