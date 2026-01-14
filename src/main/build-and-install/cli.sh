@@ -15,7 +15,7 @@ bai.print_help() {
   echo
 }
 
-TS_DESIRED_VERSION="~0.400.0"
+TS_DESIRED_VERSION="~0.401.0"
 
 bai.run() {
   REPO_ROOT="$(folder.repo_root)"
