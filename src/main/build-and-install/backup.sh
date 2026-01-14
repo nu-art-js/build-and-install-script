@@ -6,7 +6,7 @@ bai.backup() {
   folder.delete "$target"
   folder.create "$target"
 
-  for pkg in ts-common commando build-and-install; do
+  for pkg in ts-common commando build-and-install cli-params logger; do
     local from="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}"
     cp -R "$from" "$target/$pkg"
   done
@@ -17,7 +17,7 @@ bai.restore() {
   local source="$REPO_ROOT/.trash/node_modules_backup/$label"
   log.info "Restoring packages from backup label: $label"
 
-  for pkg in ts-common commando build-and-install; do
+  for pkg in ts-common commando build-and-install cli-params logger; do
     local backup="$source/$pkg"
     local dest="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}"
     local target="node_modules/@nu-art/$pkg"
@@ -41,7 +41,7 @@ bai.list.backups() {
 bai.swap.local() {
   log.info "Linking local packages from _thunderstorm..."
 
-  for pkg in ts-common commando build-and-install; do
+  for pkg in ts-common commando build-and-install cli-params logger; do
     local src="_thunderstorm/$pkg/dist"
     local dest="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}/node_modules/@nu-art/${pkg}"
 
