@@ -18,6 +18,12 @@ bai.print_help() {
 TS_DESIRED_VERSION="~0.401.0"
 
 bai.run() {
+  if [[ "${BASH_VERSINFO[0]}" -ne 5 ]]; then
+    error.throw "This script requires Bash 5.x. Current: $BASH_VERSION" 1
+    echo "This script requires Bash 5.x. Current: $BASH_VERSION"
+    exit 1
+  fi
+
   REPO_ROOT="$(folder.repo_root)"
 
   system.setup
