@@ -36,77 +36,67 @@ ssl.setup() {
   # Ensure certificate directory exists
   folder.create "$CERT_DIR"
 
-  # Debounce logic: skip setup if within one week, unless forced
-  # Store sync file path for later timestamp update on success
+  # Debounce logic: skip global cert/keychain setup if within one week, unless forced
   local SYNC_FILE="${CERT_DIR}/${CERT_NAME}.sync"
   local FORCE_FLAG="${4:-false}"
-  ssl.debounce_setup "$SYNC_FILE" "$FORCE_FLAG" || return 0
-  # Step 1: Ensure certificate exists
-  log.info "Step 1: Ensuring certificate exists..."
-  if ! ssl.has_cert "$CERT_PATH"; then
-    log.info "Certificate not found, creating..."
-    # Generate certificate with SAN entries for webpack and express compatibility
-    # Includes localhost (DNS) and 127.0.0.1 (IP) in Subject Alternative Name
-    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
-  else
-    log.debug "Certificate already exists: $CERT_PATH"
-    # Still call ensure_cert to check expiration and regenerate if needed
-    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
-  fi
-  
-  # Check if certificate is expiring soon (within 14 days)
-  if ssl.has_cert "$CERT_PATH"; then
-    if ssl.is_cert_expired_or_expiring "$CERT_PATH" "14"; then
-      log.info "Certificate is expired or will expire within 14 days. Removing and regenerating..."
-      rm -f "$CERT_PATH" "$KEY_PATH"
-      # Call ssl.setup again with the same arguments and return the exit code
-      ssl.setup "$CERT_NAME" "$DAYS" "$KEYCHAIN_TYPE"
-      exit $?
+
+  if ssl.debounce_setup "$SYNC_FILE" "$FORCE_FLAG"; then
+    # Step 1: Ensure certificate exists
+    log.info "Step 1: Ensuring certificate exists..."
+    if ! ssl.has_cert "$CERT_PATH"; then
+      log.info "Certificate not found, creating..."
+      ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
+    else
+      log.debug "Certificate already exists: $CERT_PATH"
+      ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
     fi
+
+    # Check if certificate is expiring soon (within 14 days)
+    if ssl.has_cert "$CERT_PATH"; then
+      if ssl.is_cert_expired_or_expiring "$CERT_PATH" "14"; then
+        log.info "Certificate is expired or will expire within 14 days. Removing and regenerating..."
+        rm -f "$CERT_PATH" "$KEY_PATH"
+        ssl.setup "$CERT_NAME" "$DAYS" "$KEYCHAIN_TYPE"
+        exit $?
+      fi
+    fi
+
+    # Step 2: Add to keychain if not present
+    log.info "Step 2: Checking if certificate is in keychain..."
+    if ssl.is_cert_in_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"; then
+      log.debug "Certificate is already in keychain"
+    else
+      log.info "Certificate not in keychain, adding..."
+      ssl.add_cert_to_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"
+    fi
+
+    # Step 3: Trust certificate if not trusted
+    log.info "Step 3: Ensuring certificate is trusted..."
+    if ssl.is_cert_trusted "$CERT_PATH" "$KEYCHAIN_TYPE"; then
+      log.debug "Certificate is already trusted"
+    else
+      log.info "Certificate not trusted, trusting..."
+      ssl.trust_cert "$CERT_PATH" "$KEYCHAIN_TYPE"
+    fi
+
+    # Update debounce timestamp only after successful global setup
+    date +%s > "$SYNC_FILE"
   fi
 
-  # Step 2: Add to keychain if not present
-  log.info "Step 2: Checking if certificate is in keychain..."
-  if ssl.is_cert_in_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"; then
-    log.debug "Certificate is already in keychain"
-  else
-    log.info "Certificate not in keychain, adding..."
-    ssl.add_cert_to_keychain "$CERT_PATH" "$KEYCHAIN_TYPE"
-  fi
-  
-  # Step 3: Trust certificate if not trusted
-  log.info "Step 3: Ensuring certificate is trusted..."
-  if ssl.is_cert_trusted "$CERT_PATH" "$KEYCHAIN_TYPE"; then
-    log.debug "Certificate is already trusted"
-  else
-    log.info "Certificate not trusted, trusting..."
-    ssl.trust_cert "$CERT_PATH" "$KEYCHAIN_TYPE"
-  fi
-  
-  # Step 4: Create symlinks in project .config/.ssl/ directory
+  # Step 4: Always create symlinks in project directory (project-scoped, not debounced)
   log.info "Step 4: Creating symlinks in project directory..."
   local REPO_ROOT
   REPO_ROOT="$(folder.repo_root)"
   local PROJECT_SSL_DIR="${REPO_ROOT}/.config/.ssl"
-  
-  # Create .config/.ssl directory if it doesn't exist
+
   folder.create "$PROJECT_SSL_DIR"
-  
-  # Create symlinks for certificate and key
-  local PROJECT_CERT_PATH="${PROJECT_SSL_DIR}/${CERT_NAME}.crt"
-  local PROJECT_KEY_PATH="${PROJECT_SSL_DIR}/${CERT_NAME}.key"
-  
-  # Use symlink.ensure to create/update symlinks (from bash-tools)
-  # This ensures symlinks point to the correct source of truth
-  symlink.ensure "$CERT_PATH" "$PROJECT_CERT_PATH"
-  symlink.ensure "$KEY_PATH" "$PROJECT_KEY_PATH"
-  
+
+  symlink.ensure "$CERT_PATH" "${PROJECT_SSL_DIR}/${CERT_NAME}.crt"
+  symlink.ensure "$KEY_PATH" "${PROJECT_SSL_DIR}/${CERT_NAME}.key"
+
   log.info "✅ SSL certificate setup complete"
   log.info "   Source of truth: $CERT_DIR"
   log.info "   Project symlinks: $PROJECT_SSL_DIR"
-  
-  # Update debounce timestamp only after successful completion
-  date +%s > "$SYNC_FILE"
 }
 
 
