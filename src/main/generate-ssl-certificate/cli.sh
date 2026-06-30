@@ -5,7 +5,9 @@
 
 ssl.print_help() {
   echo -e "\nSSL Certificate Setup Options:\n"
-  echo "  <key_name> <days>     Setup SSL certificate (default: localhost 365)"
+  echo "  <key_name> [days]     Setup SSL certificate (default: localhost 365)"
+  echo "                        If .config/ssl-certs.conf has a [key_name] section,"
+  echo "                        CN, SAN, and days are resolved from it automatically."
   echo "  --help, -h            Show this help message"
   echo
 }

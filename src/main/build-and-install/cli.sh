@@ -5,7 +5,7 @@ BAI_REMAINING_ARGS=()
 bai.print_help() {
   echo -e "\nThunderstorm BAI Script Options:\n"
   echo "  init                      Full initialization (removes node_modules, sets up SSL, installs deps)"
-  echo "  ssl [name] [days]         Setup SSL certificate only (fast, for testing)"
+  echo "  ssl [name] [days]         Setup SSL certificate (reads .config/ssl-certs.conf if present)"
   echo "  --ts-version=<pattern>, -tv=<pattern>  Desired version pattern (e.g., ~0.400.0, ^0.400.0, or exact version)"
   echo "  --backup <label>, -b      Backup current node_modules under the given label (default if omitted)"
   echo "  --restore <label>, -r     Restore node_modules from the given label (default if omitted)"

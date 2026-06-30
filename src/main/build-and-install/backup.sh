@@ -38,11 +38,21 @@ bai.list.backups() {
   find "$path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | sort
 }
 
+bai.local_package_src() {
+  local pkg="$1"
+
+  case "$pkg" in
+    build-and-install) echo "_thunderstorm/build-and-install/impl/dist" ;;
+    *) echo "_thunderstorm/$pkg/dist" ;;
+  esac
+}
+
 bai.swap.local() {
   log.info "Linking local packages from _thunderstorm..."
 
   for pkg in ts-common commando build-and-install cli-params logger; do
-    local src="_thunderstorm/$pkg/dist"
+    local src
+    src="$(bai.local_package_src "$pkg")"
     local dest="node_modules/.pnpm/@nu-art+${pkg}@${TS_VERSION}/node_modules/@nu-art/${pkg}"
 
     folder.delete "$dest"

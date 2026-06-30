@@ -1,65 +1,75 @@
-## @function: ssl.setup(cert_name?, days?, keychain_type?)
+## @function: ssl.setup(cert_name?, days?, keychain_type?, force?)
 ##
-## @description: Complete SSL certificate setup for local development. Creates certificate if missing, adds to keychain if not present, and ensures it's trusted. Uses encapsulated SSL APIs.
+## @description: Complete SSL certificate setup for local development.
+##               Resolves domain config from ssl-certs.conf (if present) or falls back to defaults.
+##               Creates certificate if missing or config changed, adds to keychain, and ensures trust.
 ##
-## @param: $1 - Optional certificate name (default: localhost)
-## @param: $2 - Optional number of days validity (default: 365)
+## @param: $1 - Optional certificate name / config section key (default: localhost)
+## @param: $2 - Optional number of days validity (default: 365, overridden by config if present)
 ## @param: $3 - Optional keychain type: "login" (default, no sudo) or "system" (requires sudo)
+## @param: $4 - Optional force flag: "true" to skip debounce (default: false)
 ##
 ## @return: null
 ssl.setup() {
-  # Skip SSL setup when running as Jenkins user (CI/CD environment)
   local current_user="${USER:-$(whoami)}"
   if [[ "$current_user" == "jenkins" ]]; then
     log.info "Skipping SSL certificate setup (running as Jenkins user in CI/CD environment)"
     return 0
   fi
-  
+
   local CERT_NAME="${1:-localhost}"
   local DAYS="${2:-365}"
   local KEYCHAIN_TYPE="${3:-system}"
-  
+  local FORCE_FLAG="${4:-false}"
+
   log.info "Setting up SSL certificate for local development..."
-  
-  # Determine certificate paths
-  # Source of truth: ~/.local-dev-ssl/ (see .project/conventions/ssl-certificate-storage.txt)
+
   local CERT_DIR="${SSL_CERT_DIR:-${HOME}/.local-dev-ssl}"
   local CERT_PATH="${CERT_DIR}/${CERT_NAME}.crt"
   local KEY_PATH="${CERT_DIR}/${CERT_NAME}.key"
-  
+
+  # Resolve config: ssl-certs.conf section takes precedence, then CLI args, then defaults
+  local CONFIG_CN="$CERT_NAME"
+  local CONFIG_SAN=("localhost" "127.0.0.1")
+  local CONFIG_DAYS="$DAYS"
+
+  local REPO_ROOT
+  REPO_ROOT="$(folder.repo_root)"
+  local config_file="${REPO_ROOT}/.config/ssl-certs.conf"
+
+  if [[ -f "$config_file" ]]; then
+    local config_string
+    config_string="$(_ssl.read_config "$CERT_NAME" 2>/dev/null)" || true
+
+    if [[ -n "$config_string" ]]; then
+      _ssl.parse_config "$config_string"
+      CONFIG_CN="$SSL_CONFIG_CN"
+      CONFIG_SAN=("${SSL_CONFIG_SAN[@]}")
+      CONFIG_DAYS="$SSL_CONFIG_DAYS"
+      log.info "Loaded certificate config from ssl-certs.conf [$CERT_NAME]"
+    else
+      log.debug "No config section [$CERT_NAME] in ssl-certs.conf, using defaults"
+    fi
+  else
+    log.debug "No ssl-certs.conf found, using defaults"
+  fi
+
   log.debug "Certificate name: $CERT_NAME"
-  log.debug "Validity: $DAYS days"
+  log.debug "CN: $CONFIG_CN"
+  log.debug "SAN: ${CONFIG_SAN[*]}"
+  log.debug "Validity: $CONFIG_DAYS days"
   log.debug "Keychain type: $KEYCHAIN_TYPE"
   log.debug "Certificate directory: $CERT_DIR"
   echo ""
-  
-  # Ensure certificate directory exists
+
   folder.create "$CERT_DIR"
 
-  # Debounce logic: skip global cert/keychain setup if within one week, unless forced
   local SYNC_FILE="${CERT_DIR}/${CERT_NAME}.sync"
-  local FORCE_FLAG="${4:-false}"
 
   if ssl.debounce_setup "$SYNC_FILE" "$FORCE_FLAG"; then
-    # Step 1: Ensure certificate exists
-    log.info "Step 1: Ensuring certificate exists..."
-    if ! ssl.has_cert "$CERT_PATH"; then
-      log.info "Certificate not found, creating..."
-      ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
-    else
-      log.debug "Certificate already exists: $CERT_PATH"
-      ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$DAYS" "$CERT_NAME" "localhost" "127.0.0.1"
-    fi
-
-    # Check if certificate is expiring soon (within 14 days)
-    if ssl.has_cert "$CERT_PATH"; then
-      if ssl.is_cert_expired_or_expiring "$CERT_PATH" "14"; then
-        log.info "Certificate is expired or will expire within 14 days. Removing and regenerating..."
-        rm -f "$CERT_PATH" "$KEY_PATH"
-        ssl.setup "$CERT_NAME" "$DAYS" "$KEYCHAIN_TYPE"
-        exit $?
-      fi
-    fi
+    # Step 1: Ensure certificate exists, matches config, and is not expired
+    log.info "Step 1: Ensuring certificate exists and matches config..."
+    ssl.ensure_cert "$KEY_PATH" "$CERT_PATH" "$CONFIG_DAYS" "$CONFIG_CN" "${CONFIG_SAN[@]}"
 
     # Step 2: Add to keychain if not present
     log.info "Step 2: Checking if certificate is in keychain..."
@@ -79,14 +89,11 @@ ssl.setup() {
       ssl.trust_cert "$CERT_PATH" "$KEYCHAIN_TYPE"
     fi
 
-    # Update debounce timestamp only after successful global setup
     date +%s > "$SYNC_FILE"
   fi
 
   # Step 4: Always create symlinks in project directory (project-scoped, not debounced)
   log.info "Step 4: Creating symlinks in project directory..."
-  local REPO_ROOT
-  REPO_ROOT="$(folder.repo_root)"
   local PROJECT_SSL_DIR="${REPO_ROOT}/.config/.ssl"
 
   folder.create "$PROJECT_SSL_DIR"
