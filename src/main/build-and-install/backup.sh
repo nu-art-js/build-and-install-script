@@ -41,10 +41,12 @@ bai.list.backups() {
 bai.local_package_src() {
   local pkg="$1"
 
-  case "$pkg" in
-    build-and-install) echo "_thunderstorm/build-and-install/impl/dist" ;;
-    *) echo "_thunderstorm/$pkg/dist" ;;
-  esac
+  if [[ "$pkg" == "build-and-install" && -d "_thunderstorm/build-and-install/impl/dist" ]]; then
+    echo "_thunderstorm/build-and-install/impl/dist"
+    return
+  fi
+
+  echo "_thunderstorm/${pkg}/dist"
 }
 
 bai.swap.local() {

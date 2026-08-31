@@ -5,7 +5,7 @@ system.setup() {
 
   if ! command -v pnpm &> /dev/null; then
     log.info "Installing pnpm..."
-    npm install -g pnpm
+    npm install -g pnpm@10
   fi
 }
 
@@ -33,7 +33,13 @@ bai.initial.install() {
 }
 EOF
 
-  echo -e "packages:\n  - '.'" > pnpm-workspace.yaml
+  cat <<EOF > pnpm-workspace.yaml
+packages:
+  - '.'
+allowBuilds:
+  esbuild: false
+  protobufjs: false
+EOF
 
   pnpm install
 }
