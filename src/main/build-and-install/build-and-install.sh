@@ -1,11 +1,35 @@
 #!/bin/bash
 
+## @function: system.setup()
+##
+## @description: Activate the Node version from .nvmrc and install pnpm with that Node's npm.
+##
+## @return: void
+##
+## @dependencies: nvm
 system.setup() {
   nvm.setup
+  nvm.source
+
+  local node_version node_bin npm_cli
+  node_version="$(nvm.node.version.rc)"
+  # Resolve the .nvmrc install directly. `nvm which current` follows `command which node`,
+  # which is the other node when it appears earlier on PATH.
+  node_bin="$(nvm which "$node_version")" || error.throw "Active nvm node not found for ${node_version}" 1
+  [[ -x "$node_bin" ]] || error.throw "Active nvm node not found: $node_bin" 1
+
+  npm_cli="$(dirname "$node_bin")/npm"
+  [[ -x "$npm_cli" ]] || error.throw "Active nvm npm not found: $npm_cli" 1
+
+  # nvm's npm starts with #!/usr/bin/env node. If another node is earlier on PATH
+  # (for example /exec-daemon/node, prefix /), global installs land in
+  # /usr/lib/node_modules and fail with EACCES. Keep the active nvm bin first,
+  # and run npm with that node so the shebang is not used.
+  export PATH="$(dirname "$node_bin"):$PATH"
 
   if ! command -v pnpm &> /dev/null; then
     log.info "Installing pnpm..."
-    npm install -g pnpm@10
+    "$node_bin" "$npm_cli" install -g pnpm@10
   fi
 }
 
