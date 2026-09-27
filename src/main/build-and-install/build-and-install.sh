@@ -33,7 +33,29 @@ system.setup() {
   fi
 }
 
+## @function: bai.require.tools()
+##
+## @description: Fail before pnpm install when cpio or rsync is missing. cpio copies SCSS and other assets into each package dist. rsync copies dependency output into the backend image.
+##
+## @return: void
+bai.require.tools() {
+  local missing=()
+
+  if ! command -v cpio &> /dev/null; then
+    missing+=("cpio (copies SCSS and other assets into each package dist)")
+  fi
+  if ! command -v rsync &> /dev/null; then
+    missing+=("rsync (copies dependency output into the backend image)")
+  fi
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    error.throw "BAI requires these tools: ${missing[*]}" 1
+  fi
+}
+
 bai.initial.install() {
+  bai.require.tools
+
   log.info "Performing fresh initial install of BAI..."
   rm -f package-lock.json pnpm-lock.yaml
   folder.delete node_modules
@@ -79,6 +101,8 @@ bai.ssl.setup() {
 }
 
 bai.build.run() {
+  bai.require.tools
+
   log.debug "Launching BAI with params: $*"
 
   if [[ -f "$REPO_ROOT/build-and-install.ts" ]]; then

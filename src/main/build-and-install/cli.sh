@@ -53,11 +53,13 @@ bai.run() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       minimal)
+        bai.require.tools
         rm -rf "$REPO_ROOT/node_modules"
         bai.initial.install
         shift
         ;;
       init)
+        bai.require.tools
         BAI_REMAINING_ARGS+=("-p")
         rm -rf "$REPO_ROOT/node_modules"
         bai.ssl.setup
